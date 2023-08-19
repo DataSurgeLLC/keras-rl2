@@ -346,10 +346,9 @@ class Agent:
                 for _ in range(action_repetition):
                     callbacks.on_action_begin(action)
                     observation, r, trm, trunc, info = env.step(action)
-                    d = trm or trunc
                     observation = deepcopy(observation)
                     if self.processor is not None:
-                        observation, r, d, info = self.processor.process_step(observation, r, d, info)
+                        observation, r, trm, trunc, info = self.processor.process_step(observation, r, trm, trunc, info)
                     callbacks.on_action_end(action)
                     reward += r
                     for key, value in info.items():
@@ -358,7 +357,7 @@ class Agent:
                         if key not in accumulated_info:
                             accumulated_info[key] = np.zeros_like(value)
                         accumulated_info[key] += value
-                    if d:
+                    if trm or trunc:
                         done = True
                         break
                 if nb_max_episode_steps and episode_step >= nb_max_episode_steps - 1:
