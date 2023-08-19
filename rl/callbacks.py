@@ -357,7 +357,7 @@ class FileLogger(Callback):
 class Visualizer(Callback):
     def on_action_end(self, action, logs):
         """ Render environment at the end of each action """
-        self.env.render(render_mode='human')
+        self.env.render()
 
 
 class ModelIntervalCheckpoint(Callback):
