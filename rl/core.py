@@ -128,7 +128,7 @@ class Agent:
 
                     # Obtain the initial observation by resetting the environment.
                     self.reset_states()
-                    observation = deepcopy(env.reset())
+                    observation, info = deepcopy(env.reset())
                     if self.processor is not None:
                         observation = self.processor.process_observation(observation)
                     assert observation is not None
@@ -144,14 +144,14 @@ class Agent:
                         if self.processor is not None:
                             action = self.processor.process_action(action)
                         callbacks.on_action_begin(action)
-                        observation, reward, done, info = env.step(action)
+                        observation, reward, terminated, truncated, info = env.step(action)
                         observation = deepcopy(observation)
                         if self.processor is not None:
-                            observation, reward, done, info = self.processor.process_step(observation, reward, done, info)
+                            observation, reward, terminated, truncated, info = self.processor.process_step(observation, reward, terminated, truncated, info)
                         callbacks.on_action_end(action)
                         if done:
                             warnings.warn(f'Env ended before {nb_random_start_steps} random steps could be performed at the start. You should probably lower the `nb_max_start_steps` parameter.')
-                            observation = deepcopy(env.reset())
+                            observation, info = deepcopy(env.reset())
                             if self.processor is not None:
                                 observation = self.processor.process_observation(observation)
                             break
@@ -173,10 +173,10 @@ class Agent:
                 done = False
                 for _ in range(action_repetition):
                     callbacks.on_action_begin(action)
-                    observation, r, done, info = env.step(action)
+                    observation, r, terminated, truncated, info = env.step(action)
                     observation = deepcopy(observation)
                     if self.processor is not None:
-                        observation, r, done, info = self.processor.process_step(observation, r, done, info)
+                        observation, r, terminated, truncated, info = self.processor.process_step(observation, r, terminated, truncated, info)
                     for key, value in info.items():
                         if not np.isreal(value):
                             continue
@@ -305,7 +305,7 @@ class Agent:
 
             # Obtain the initial observation by resetting the environment.
             self.reset_states()
-            observation = deepcopy(env.reset())
+            observation, info = deepcopy(env.reset())
             if self.processor is not None:
                 observation = self.processor.process_observation(observation)
             assert observation is not None
@@ -321,14 +321,14 @@ class Agent:
                 if self.processor is not None:
                     action = self.processor.process_action(action)
                 callbacks.on_action_begin(action)
-                observation, r, done, info = env.step(action)
+                observation, r, terminated, truncated, info = env.step(action)
                 observation = deepcopy(observation)
                 if self.processor is not None:
-                    observation, r, done, info = self.processor.process_step(observation, r, done, info)
+                    observation, r, terminated, truncated, info = self.processor.process_step(observation, r, terminated, truncated, info)
                 callbacks.on_action_end(action)
                 if done:
                     warnings.warn(f'Env ended before {nb_random_start_steps} random steps could be performed at the start. You should probably lower the `nb_max_start_steps` parameter.')
-                    observation = deepcopy(env.reset())
+                    observation, info = deepcopy(env.reset())
                     if self.processor is not None:
                         observation = self.processor.process_observation(observation)
                     break
@@ -345,10 +345,10 @@ class Agent:
                 accumulated_info = {}
                 for _ in range(action_repetition):
                     callbacks.on_action_begin(action)
-                    observation, r, d, info = env.step(action)
+                    observation, r, trm, trunc, info = env.step(action)
                     observation = deepcopy(observation)
                     if self.processor is not None:
-                        observation, r, d, info = self.processor.process_step(observation, r, d, info)
+                        observation, r, trm, trunc, info = self.processor.process_step(observation, r, trm, trunc, info)
                     callbacks.on_action_end(action)
                     reward += r
                     for key, value in info.items():
@@ -357,7 +357,7 @@ class Agent:
                         if key not in accumulated_info:
                             accumulated_info[key] = np.zeros_like(value)
                         accumulated_info[key] += value
-                    if d:
+                    if trm or trunc:
                         done = True
                         break
                 if nb_max_episode_steps and episode_step >= nb_max_episode_steps - 1:
@@ -507,22 +507,23 @@ class Processor:
     or write your own.
     """
 
-    def process_step(self, observation, reward, done, info):
+    def process_step(self, observation, reward, terminated, truncated, info):
         """Processes an entire step by applying the processor to the observation, reward, and info arguments.
 
         # Arguments
             observation (object): An observation as obtained by the environment.
             reward (float): A reward as obtained by the environment.
-            done (boolean): `True` if the environment is in a terminal state, `False` otherwise.
+            terminated (boolean): `True` if the environment is in a terminal state, `False` otherwise.
+            truncated (boolean): `True` if the environment is in a terminal state, `False` otherwise.
             info (dict): The debug info dictionary as obtained by the environment.
 
         # Returns
-            The tupel (observation, reward, done, reward) with with all elements after being processed.
+            The tupel (observation, reward, terminated, truncated, reward) with with all elements after being processed.
         """
         observation = self.process_observation(observation)
         reward = self.process_reward(reward)
         info = self.process_info(info)
-        return observation, reward, done, info
+        return observation, reward, terminated, truncated, info
 
     def process_observation(self, observation):
         """Processes the observation as obtained from the environment for use in an agent and

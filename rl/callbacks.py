@@ -5,9 +5,9 @@ from tempfile import mkdtemp
 
 import numpy as np
 import tensorflow as tf
-from tensorflow.keras import __version__ as KERAS_VERSION
+from keras import __version__ as KERAS_VERSION
 from tensorflow.python.keras.callbacks import Callback as KerasCallback, CallbackList as KerasCallbackList
-from tensorflow.python.keras.utils.generic_utils import Progbar
+from keras.utils import Progbar
 
 class Callback(KerasCallback):
     def _set_env(self, env):
@@ -357,7 +357,7 @@ class FileLogger(Callback):
 class Visualizer(Callback):
     def on_action_end(self, action, logs):
         """ Render environment at the end of each action """
-        self.env.render(mode='human')
+        self.env.render()
 
 
 class ModelIntervalCheckpoint(Callback):
